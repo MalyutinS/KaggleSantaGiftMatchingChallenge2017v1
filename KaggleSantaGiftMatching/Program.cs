@@ -158,8 +158,6 @@ namespace KaggleSantaGiftMatching
                 IRange[][] rng = new IRange[3][];
 
                 var[0] = cplex.BoolVarArray(totalArcs + 1000000 - 4000);
-                //var[1] = cplex.IntVarArray(1000, 0, 1000);
-                //var[2] = cplex.IntVarArray(1, 0, 1000000 - 4000);
 
                 DescribeModel(cplex, costs, var, rng, edge2Ind, i2J, j2I);
                 
@@ -254,7 +252,6 @@ namespace KaggleSantaGiftMatching
                         {
                             Console.WriteLine("Error: child {0} has no gift", i);
                         }
-
                     }
                 }
 
@@ -318,8 +315,6 @@ namespace KaggleSantaGiftMatching
                 {
                     prods.Add(x[totalArcs + i - 4000]);
                 }
-                //prods.Add(x[edgeMap.Count + i]);
-
                 rng[0][i] = cplex.AddEq(cplex.Sum(prods.ToArray()), 1);
             }
             i2J = null;
@@ -336,8 +331,6 @@ namespace KaggleSantaGiftMatching
                 {
                     prods.Add(x[edge2Ind[i * 1000 + j]]);
                 }
-                //prods.Add(cplex.Prod(y[j], -1));
-                //rng[1][j] = cplex.AddEq(cplex.Sum(prods.ToArray()), 0);
                 rng[1][j] = cplex.AddLe(cplex.Sum(prods.ToArray()), 1000);
             }
             j2I = null;
