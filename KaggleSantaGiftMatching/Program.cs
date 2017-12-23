@@ -182,7 +182,7 @@ namespace KaggleSantaGiftMatching
                 var giftCount = new int[1000];
                 for (int i = 0; i < 1000000; i++)
                 {
-                    giftCount[i] = -1;
+                    child2Gift[i] = -1;
                 }
                 for (int j = 0; j < 1000; j++)
                 {
