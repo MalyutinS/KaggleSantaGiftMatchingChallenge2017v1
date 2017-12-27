@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using ILOG.Concert;
 using ILOG.CPLEX;
 using System.IO;
+using System.Linq;
 
 namespace KaggleSantaGiftMatching
 {
@@ -14,6 +15,24 @@ namespace KaggleSantaGiftMatching
 
         static void Main()
         {
+
+
+            var c2G = new int[1000000];
+            using (var reader = new StreamReader("sample_submission_random.csv"))
+            {
+                while (!reader.EndOfStream)
+                {
+                    var line = reader.ReadLine();
+                    var values = line.Split(',');
+
+                    if (values[0] != "ChildId")
+                    {
+                        c2G[int.Parse(values[0])] = int.Parse(values[1]);
+                    }
+                }
+            }
+            Console.WriteLine("{0}: sample_submission_random.csv - OK", DateTime.Now);
+
 
             var cm = new int[1000000, 10];
             using (var reader = new StreamReader("child_wishlist.csv"))
@@ -134,12 +153,29 @@ namespace KaggleSantaGiftMatching
             }
             edgeMap = null;
 
+
             Console.WriteLine("{1}: cost - ok ({0})", costs.Length, DateTime.Now);
             Console.WriteLine("{1}: edge2ind - ok ({0})", edge2Ind.Count, DateTime.Now);
             Console.WriteLine("{1}: i2j - ok ({0})", i2J.Count, DateTime.Now);
             Console.WriteLine("{1}: j2i - ok ({0})", j2I.Count, DateTime.Now);
             Console.WriteLine("{1}: ind2edge - ok ({0})", ind2Edge.Length, DateTime.Now);
             
+
+            var initialFeasible = new double[totalArcs + 1000000 - 4000];
+            for (int i = 0; i < 1000000; i++)
+            {
+                var j = c2G[i];
+                if (edge2Ind.ContainsKey(i * 1000 + j))
+                {
+                    initialFeasible[edge2Ind[i * 1000 + j]] = 1;
+                }
+                else
+                {
+                    initialFeasible[totalArcs + i - 4000] = 1;
+                }
+            }
+
+            Console.WriteLine("{1}: initialFeasible - ok ({0})", initialFeasible.Sum(), DateTime.Now);
 
             Console.WriteLine("{0}: start cplex", DateTime.Now);
 
@@ -148,7 +184,7 @@ namespace KaggleSantaGiftMatching
             {
                 cplex = new Cplex();
                 // 2h time limit in seconds
-                cplex.SetParam(Cplex.DoubleParam.TiLim, 2 * 60 * 60); 
+                cplex.SetParam(Cplex.DoubleParam.TiLim, 30 * 60); 
                 // mip tolerances (absolute and relative) that I set to 0. 
                 // If I don't set them, then I get a solution 0.00000071 worse
                 cplex.SetParam(Cplex.Param.MIP.Tolerances.MIPGap, 0); 
@@ -159,10 +195,23 @@ namespace KaggleSantaGiftMatching
 
                 var[0] = cplex.BoolVarArray(totalArcs + 1000000 - 4000);
 
-                DescribeModel(cplex, costs, var, rng, edge2Ind, i2J, j2I);
+
                 
+                DescribeModel(cplex, costs, var, rng, edge2Ind, i2J, j2I);
+
+
+                // For MIP models, setting 1(one) will cause CPLEX to continue with a partially explored MIP tree if one is available.If tree exploration has not yet begun, setting 1(one) specifies that CPLEX should use a loaded MIP start, if available.
+                cplex.SetParam(Cplex.Param.Advance, 1);
+
+                // Starting version IBM ILOG CPLEX 11.2 multiple MIP starts can be provided to a CPLEX model. You can pass an integer solution by either providing starting values in a MST or SOL file or use one of the following methods depending on the invoking CPLEX API
+                cplex.AddMIPStart(var[0], initialFeasible);
+
 
                 Console.WriteLine("{0}: start solve", DateTime.Now);
+
+                
+
+                
 
                 if (cplex.Solve())
                 {
@@ -209,7 +258,7 @@ namespace KaggleSantaGiftMatching
                 {
                     if (child2Gift[i] == -1)
                     {
-                        Console.WriteLine("no gift for {0}", i);
+                        //Console.WriteLine("no gift for {0}", i);
                         if (i < 4000)
                         {
                             Console.WriteLine("shouldn't happen {0}", i);
@@ -221,7 +270,7 @@ namespace KaggleSantaGiftMatching
                             {
                                 if (giftCount[j] > 0)
                                 {
-                                    Console.WriteLine("gift {0} assigned to {1}", j, i);
+                                    //Console.WriteLine("gift {0} assigned to {1}", j, i);
                                     child2Gift[i] = j;
                                     giftCount[j]--;
                                     break;
